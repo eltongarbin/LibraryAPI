@@ -46,16 +46,16 @@ namespace Library.API
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env, 
+        public void Configure(IApplicationBuilder app, IHostingEnvironment env,
             ILoggerFactory loggerFactory, LibraryContext libraryContext)
-        {           
+        {
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
             }
             else
             {
-                app.UseExceptionHandler(appBuilder => 
+                app.UseExceptionHandler(appBuilder =>
                 {
                     appBuilder.Run(async context =>
                     {
@@ -76,11 +76,13 @@ namespace Library.API
                 cfg.CreateMap<Entities.Book, Models.BookDto>();
 
                 cfg.CreateMap<Models.AuthorForCreationDto, Entities.Author>();
+
+                cfg.CreateMap<Models.BookForCreationDto, Entities.Book>();
             });
 
             libraryContext.EnsureSeedDataForContext();
 
-            app.UseMvc(); 
+            app.UseMvc();
         }
     }
 }

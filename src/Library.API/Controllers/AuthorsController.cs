@@ -17,20 +17,26 @@ namespace Library.API.Controllers
         private ILibraryRepository _libraryRepository;
         private IUrlHelper _urlHelper;
         private IPropertyMappingService _propertyMappingService;
+        private ITypeHelperService _typeHelperService;
 
         public AuthorsController(ILibraryRepository libraryRepository,
                                  IUrlHelper urlHelper,
-                                 IPropertyMappingService propertyMappingService)
+                                 IPropertyMappingService propertyMappingService,
+                                 ITypeHelperService typeHelperService)
         {
             _libraryRepository = libraryRepository;
             _urlHelper = urlHelper;
             _propertyMappingService = propertyMappingService;
+            _typeHelperService = typeHelperService;
         }
 
         [HttpGet(Name = "GetAuthors")]
         public IActionResult GetAuthors(AuthorsResourceParameters authorsResourceParameters)
         {
             if (!_propertyMappingService.ValidMappingExistsFor<AuthorDto, Author>(authorsResourceParameters.OrderBy))
+                return BadRequest();
+
+            if (!_typeHelperService.TypeHasProperties<AuthorDto>(authorsResourceParameters.Fields))
                 return BadRequest();
 
             var authorsFromRepo = _libraryRepository.GetAuthors(authorsResourceParameters);
@@ -57,7 +63,7 @@ namespace Library.API.Controllers
 
             var authors = Mapper.Map<IEnumerable<AuthorDto>>(authorsFromRepo);
 
-            return Ok(authors);
+            return Ok(authors.ShapeData(authorsResourceParameters.Fields));
         }
 
         private string CreateAuthorsResourceUri(AuthorsResourceParameters authorsResourceParameters,
@@ -68,6 +74,7 @@ namespace Library.API.Controllers
                 case ResourceUriType.PreviousPage:
                     return _urlHelper.Link("GetAuthors", new
                     {
+                        fields = authorsResourceParameters.Fields,
                         orderBy = authorsResourceParameters.OrderBy,
                         searchQuery = authorsResourceParameters.SearchQuery,
                         genre = authorsResourceParameters.Genre,
@@ -77,6 +84,7 @@ namespace Library.API.Controllers
                 case ResourceUriType.NextPage:
                     return _urlHelper.Link("GetAuthors", new
                     {
+                        fields = authorsResourceParameters.Fields,
                         orderBy = authorsResourceParameters.OrderBy,
                         searchQuery = authorsResourceParameters.SearchQuery,
                         genre = authorsResourceParameters.Genre,
@@ -86,6 +94,7 @@ namespace Library.API.Controllers
                 default:
                     return _urlHelper.Link("GetAuthors", new
                     {
+                        fields = authorsResourceParameters.Fields,
                         orderBy = authorsResourceParameters.OrderBy,
                         searchQuery = authorsResourceParameters.SearchQuery,
                         genre = authorsResourceParameters.Genre,
@@ -96,18 +105,18 @@ namespace Library.API.Controllers
         }
 
         [HttpGet("{id}", Name = "GetAuthor")]
-        public IActionResult GetAuthor(Guid id)
+        public IActionResult GetAuthor(Guid id, [FromQuery] string fields)
         {
-            var authorsFromRepo = _libraryRepository.GetAuthor(id);
+            if (!_typeHelperService.TypeHasProperties<AuthorDto>(fields))
+                return BadRequest();
 
+            var authorsFromRepo = _libraryRepository.GetAuthor(id);
             if (authorsFromRepo == null)
-            {
                 return NotFound();
-            }
 
             var author = Mapper.Map<AuthorDto>(authorsFromRepo);
 
-            return Ok(author);
+            return Ok(author.ShapeData(fields));
         }
 
         [HttpPost]

@@ -1,10 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Hosting;
+﻿using Library.API.Entities;
 using Microsoft.AspNetCore;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Library.API
 {
@@ -12,7 +9,14 @@ namespace Library.API
     {
         public static void Main(string[] args)
         {
-            BuildWebHost(args).Run();
+            var host = BuildWebHost(args);
+            using (var scope = host.Services.CreateScope())
+            {
+                var dbContext = scope.ServiceProvider.GetService<LibraryContext>();
+
+                dbContext.EnsureSeedDataForContext();
+            }
+            host.Run();
         }
 
         public static IWebHost BuildWebHost(string[] args) =>

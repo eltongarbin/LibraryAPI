@@ -68,6 +68,14 @@ namespace Library.API
             });
             services.AddTransient<IPropertyMappingService, PropertyMappingService>();
             services.AddTransient<ITypeHelperService, TypeHelperService>();
+            services.AddHttpCacheHeaders((expirationModelOptions) =>
+            {
+                expirationModelOptions.MaxAge = 600;
+            }, (validationModelOptions) =>
+            {
+                validationModelOptions.AddMustRevalidate = true;
+            });
+            services.AddResponseCaching();
         }
 
         public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
@@ -116,6 +124,8 @@ namespace Library.API
                 cfg.CreateMap<Models.BookForUpdateDto, Entities.Book>();
             });
 
+            app.UseResponseCaching();
+            app.UseHttpCacheHeaders();
             app.UseMvc();
         }
     }

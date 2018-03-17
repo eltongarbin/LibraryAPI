@@ -1,4 +1,5 @@
-﻿using Library.API.Entities;
+﻿using AspNetCoreRateLimit;
+using Library.API.Entities;
 using Library.API.Helpers;
 using Library.API.Services;
 using Microsoft.AspNetCore.Builder;
@@ -15,6 +16,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Serialization;
 using NLog.Extensions.Logging;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace Library.API
@@ -76,6 +78,27 @@ namespace Library.API
                 validationModelOptions.AddMustRevalidate = true;
             });
             services.AddResponseCaching();
+            services.AddMemoryCache();
+            services.Configure<IpRateLimitOptions>((options) =>
+            {
+                options.GeneralRules = new List<RateLimitRule>()
+                {
+                    new RateLimitRule()
+                    {
+                        Endpoint = "*",
+                        Limit = 1000,
+                        Period = "5m",
+                    },
+                    new RateLimitRule()
+                    {
+                        Endpoint = "*",
+                        Limit = 200,
+                        Period = "10s"
+                    }
+                };
+            });
+            services.AddSingleton<IRateLimitCounterStore, MemoryCacheRateLimitCounterStore>();
+            services.AddSingleton<IIpPolicyStore, MemoryCacheIpPolicyStore>();
         }
 
         public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
@@ -124,6 +147,7 @@ namespace Library.API
                 cfg.CreateMap<Models.BookForUpdateDto, Entities.Book>();
             });
 
+            app.UseIpRateLimiting();
             app.UseResponseCaching();
             app.UseHttpCacheHeaders();
             app.UseMvc();
